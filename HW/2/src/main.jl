@@ -5,7 +5,7 @@ main:
 - Date: 2021-10-23
 =#
 
-using JLD2
+#using JLD2
 
 include("file_loader.jl")
 include("price_dec.jl")
@@ -496,7 +496,14 @@ function bench5()
 
 end
 
+function tst()
+	filename = "../../4/data/100.dat"
+	instance = readFile(filename)[1]
+	max_price = price_decompose(instance[1], instance[2])
+	println(max_price)
+end
 
+tst()
 # bench5()
 # bench2()
 # bench4()
