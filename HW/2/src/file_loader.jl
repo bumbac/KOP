@@ -4,6 +4,10 @@ file_loader:
 - Author: sutymate
 - Date: 2021-11-04
 =#
+IDX_WEIGHT = 1
+IDX_PRICE = 2
+IDX_ID = 3
+
 
 function readFile(name::String)
     line = 0
@@ -23,8 +27,7 @@ function readFile(name::String)
             catch e
                 println("ERROR in parsing definition")
             end
-            n=15
-            bag = zeros(Int64, (15, 3))
+            bag = zeros(Int64, (n, 3))
             idx = 1
             for i in 4:2:(length(pieces) - 1)
                 weight = 0
@@ -35,12 +38,11 @@ function readFile(name::String)
                 catch e
                     println("ERROR in parsing pairs")
                 end
-                bag[idx, 1] = weight
+                bag[idx, IDX_WEIGHT] = weight
                 if weight > M price = 0 end
-                bag[idx, 2] = price
-                bag[idx, 3] = idx
+                bag[idx, IDX_PRICE] = price
+                bag[idx, IDX_ID] = idx
                 idx += 1
-                if idx > 15 break end
             end
             bag = sortslices(bag, dims=1, by=x->(x[2]/x[1]), rev=true)
             push!(instances, (bag, M))
