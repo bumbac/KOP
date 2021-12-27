@@ -5,10 +5,8 @@ simulated:
 - Date: 2021-12-18
 =#
 using Random
-using DataStructures
 
 include("../../2/src/file_loader.jl")
-Q_WINDOW = 10
 
 function valid(state)
     # checks if items in state do not exceed weight
@@ -20,7 +18,6 @@ function valid(state)
     end
     return true
 end
-
 
 function generate_solution(instance)
     # create random initial solution
@@ -48,17 +45,38 @@ function generate_solution(instance)
     return state
 end
 
+function repair(state)
+    # unload random items from knapsack when overloaded
+    bag, M, decision = state
+    n = size(bag)[1]
+    weight = 0
+    for i in 1:n weight += bag[i, IDX_WEIGHT]*decision[i] end
+    while weight > M
+        delete_idx = rand(1:n)
+        decision[delete_idx] = 0
+        weight = 0
+        for i in 1:n weight += bag[i, IDX_WEIGHT]*decision[i] end
+    end 
+    return (bag, M, decision)
+end
+
 function sa_try(T, state)
     bag, M, decision = state
     n = size(bag)[1]
     new_decision = copy(decision)
-    # based on size of instance, change 5% of items
-    for cnt in 1:(n//20 + 1)
+    cnt = 0
+    while cnt < n
+        # try n times to add item
         change_idx = rand(1:n)
-        # flip one item
-        new_decision[change_idx] = 1 - new_decision[change_idx]
+        # add one item
+        if new_decision[change_idx] == 0
+            new_decision[change_idx] = 1
+            break
+        end
+        cnt += 1
     end
     new_state = (bag, M, new_decision)
+    if cost(new_state) == 0 new_state = repair(new_state) end
     # difference in cost, can be negative
     acceptance_factor = improvement(new_state, state)
     # if difference is positive (better solution) accept it
@@ -76,13 +94,8 @@ function improvement(current, previous)
     return cost(current) - cost(previous)
 end
 
-function equilibrium(T, state, steps, q)
-#     q_accepted = sum(q)
-#     if q_accepted < Q_WINDOW*0.1 return false end
-    return true
-end
-
 function cost(state)
+    # optimization criterion is the price of knapsack
     bag, M, decision = state
     n = size(bag)[1]
     profit = 0
@@ -92,48 +105,33 @@ function cost(state)
         weight += bag[i, IDX_WEIGHT]*decision[i]
     end
     if weight > M
+        # penalty
         return 0
     end
     return profit
 end
 
-function cool(T, state)
-    a = 0.95
-    return a*T
+function cool(T, cooling_factor)
+    return cooling_factor*T
 end
 
-function sa(instance)
+function sa(instance, T, frozen_limit, inner_cycle=50, cooling_factor=0.99)
     state = generate_solution(instance)
-    T = 1
     best = state
-    accepted = 1000
-    frozen_limit = 50
     steps = 0
-    q = Queue{Int8}()
-    for i in 1:Q_WINDOW enqueue!(q, 0) end
-    while accepted > frozen_limit
-        for i in 1:50
+    # graph making, current solution
+    y = []
+    # graph making, best solution so far
+    y_best = []
+    while T > frozen_limit
+        for i in 1:inner_cycle
             state = sa_try(T, state)
-            if improvement(state, best) > 0
-                best = state
-                accepted += 1
-            else
-                accepted -= 1
-            end
+            if improvement(state, best) > 0 best = state end
+            push!(y, cost(state))
+            push!(y_best, cost(best))
+            T =  cool(T, cooling_factor)
+            state = best
         end
-        T =  cool(T, state)
-#         println(accepted, "\t", cost(best), "\t", improvement(best, state), "\t", T)
     end
-    return cost(best), best
+    return cost(best), best, y, y_best
 end
-
-function main()
-    filename = "../data/ZKC/ZKC40_inst.dat"
-    instances = readFile(filename)
-    for instance in instances
-        cost, result = sa(instance)
-        println(cost)
-    end
-end
-
-main()
