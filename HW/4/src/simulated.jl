@@ -10,10 +10,10 @@ include("../../2/src/file_loader.jl")
 
 function valid(state)
     # checks if items in state do not exceed weight
-    bag, M, decision = state
+    bag, M, decision, yes, no = state
     weight = 0
-    for i in 1:size(bag)[1]
-        weight += decision[i]*bag[i, IDX_WEIGHT]
+    for i in yes
+        weight += bag[i, IDX_WEIGHT]
         if weight > M return false end
     end
     return true
@@ -24,68 +24,63 @@ function generate_solution(instance)
     bag, M = instance
     n = size(bag)[1]
     state = 0
-    cnt = 1000
+    cnt = n*10
     while true
         cnt -= 1
         if cnt == 0
             println("CANT FIND INITIAL STATE")
-            state = (bag, M, zeros(Int8, n))
-            break
+            no = [i for i in 1:n]
+            return (bag, M, zeros(Bool, n), [], no)
         end
-        n_candidates = rand(1:n)
-        decision = zeros(Int8, n)
-        for i in 1:n_candidates
-            decision[i] = rand(0:1)
-            # prevents loading too heavy item
-            if bag[i, IDX_WEIGHT] > M decision[i] = 0 end
+        decision = zeros(Bool, n)
+        yes = []
+        no = []
+        for i in 1:n
+            answer = rand(0:1)
+            if answer == 1
+                if bag[i, IDX_WEIGHT] > M 
+                    push!(no, i)
+                    continue
+                end
+                push!(yes, i)
+                decision[i] = 1
+            else
+                push!(no, i)
+            end
         end
-        state = (bag, M, decision)
-        if valid(state) break end
+        state = (bag, M, decision, yes, no)
+        if valid(state) return state end
     end
-    return state
 end
 
 function repair(state)
     # unload random items from knapsack when overloaded
-    bag, M, decision = state
-    n = size(bag)[1]
+    bag, M, decision, yes, no = state
     weight = 0
-    for i in 1:n weight += bag[i, IDX_WEIGHT]*decision[i] end
+    for i in yes weight += bag[i, IDX_WEIGHT] end
     while weight > M
-        delete_idx = rand(1:n)
+        delete_idx = rand(yes)
         decision[delete_idx] = 0
+        deleteat!(yes, findall(x->x==delete_idx, yes))
+        push!(no, delete_idx)
         weight = 0
-        for i in 1:n weight += bag[i, IDX_WEIGHT]*decision[i] end
+        for i in yes weight += bag[i, IDX_WEIGHT] end
     end 
-    return (bag, M, decision)
+    return (bag, M, decision, yes, no)
 end
 
 function sa_try(T, state)
-    bag, M, decision = state
-    n = size(bag)[1]
+    bag, M, decision, yes, no = state
+    if length(no) == 0 return state end
     new_decision = copy(decision)
-    cnt = 0
-    while cnt < n
-        # try n times to add item
-        change_idx = rand(1:n)
-        # add one item
-        if new_decision[change_idx] == 0
-            new_decision[change_idx] = 1
-            break
-        end
-        cnt += 1
-    end
-    new_state = (bag, M, new_decision)
-    if cost(new_state) == 0 new_state = repair(new_state) end
-    # difference in cost, can be negative
-    acceptance_factor = improvement(new_state, state)
-    # if difference is positive (better solution) accept it
-    if acceptance_factor > 0 return new_state end
-    # sometimes also accept worse solution, depends on a. factor and temperature
-    if rand() < exp(-acceptance_factor / T)
-        return new_state
-    end
-    return state
+    change_idx = rand(no)
+    # add one item
+    new_decision[change_idx] = 1
+    push!(yes, change_idx)
+    deleteat!(no, findall(x->x==change_idx, no))
+    new_state = (bag, M, new_decision, yes, no)
+#     if !valid(new_state) new_state = repair(new_state) end
+    return new_state
 end
 
 function improvement(current, previous)
@@ -96,13 +91,13 @@ end
 
 function cost(state)
     # optimization criterion is the price of knapsack
-    bag, M, decision = state
+    bag, M, decision, yes, no = state
     n = size(bag)[1]
     profit = 0
     weight = 0
-    for i in 1:n
-        profit += bag[i, IDX_PRICE]*decision[i]
-        weight += bag[i, IDX_WEIGHT]*decision[i]
+    for i in yes
+        profit += bag[i, IDX_PRICE]
+        weight += bag[i, IDX_WEIGHT]
     end
     if weight > M
         # penalty
@@ -111,27 +106,55 @@ function cost(state)
     return profit
 end
 
+function change(current, previous)
+    bag, M, decision, yes, no = current
+    pbag, pM, pdecision, pyes, pno = previous
+    return sum(decision .⊻ pdecision) > 0
+end
+
 function cool(T, cooling_factor)
     return cooling_factor*T
 end
 
 function sa(instance, T, frozen_limit, inner_cycle=50, cooling_factor=0.99)
     state = generate_solution(instance)
+    println(cost(state))
     best = state
     steps = 0
     # graph making, current solution
     y = []
     # graph making, best solution so far
     y_best = []
+    change_cnt = 20
+    
     while T > frozen_limit
         for i in 1:inner_cycle
-            state = sa_try(T, state)
+            new_state = sa_try(T, state)
+            if change(state, new_state)
+                change_cnt = 20
+            else
+                change_cnt -= 1
+            end                
+            
+            if change_cnt < 0 
+                break 
+            end
+            
+            
+            # difference in cost, can be negative
+            acceptance_factor = improvement(new_state, state)
+            # if difference is positive (better solution) accept it
+            if acceptance_factor > 0 state = new_state end
+            # sometimes also accept worse solution, depends on a. factor and temperature
+            if rand() < exp(-acceptance_factor / T) state = new_state end           
+#             push!(y, cost(state))
+#             push!(y_best, cost(best))
             if improvement(state, best) > 0 best = state end
-            push!(y, cost(state))
-            push!(y_best, cost(best))
-            T =  cool(T, cooling_factor)
-            state = best
         end
+        T = cool(T, cooling_factor)
     end
+#     println(best[4])
+#     println(best[5])
+#     println(best[3])
     return cost(best), best, y, y_best
 end
