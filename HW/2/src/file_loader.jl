@@ -7,9 +7,11 @@ file_loader:
 IDX_WEIGHT = 1
 IDX_PRICE = 2
 IDX_ID = 3
+CLAUSE_LEN = 3
 
 
-function readFile(name::String)
+function readFile(name::String, problem="knapsack")
+    if problem == "sat" return readFileSat(name) end
     line = 0
     instances = []
     open(name) do f
@@ -52,26 +54,93 @@ function readFile(name::String)
 end
 
 
-function readSolution(filename::String)
+
+function readSolution(filename::String, problem="knapsack")
+    if problem == "sat" return readSolutionSat(name) end
     solution = []
     line = 0
     open(filename) do f
-     while !eof(f)
-            s = readline(f)
-            line += 1
-            pieces = split(s, ' ')
-            ID = 0
-            n = 0
-            B = 0
-            try
-                ID = parse(Int64, pieces[1])
-                n = parse(Int64, pieces[2])
-                B = parse(Float64, pieces[3])
-            catch e
-                println("ERROR in parsing definition")
-            end
-            push!(solution, (ID, n, B))
+        while !eof(f)
+                s = readline(f)
+                line += 1
+                pieces = split(s, ' ')
+                ID = 0
+                n = 0
+                B = 0
+                try
+                    ID = parse(Int64, pieces[1])
+                    n = parse(Int64, pieces[2])
+                    B = parse(Float64, pieces[3])
+                catch e
+                    println("ERROR in parsing definition")
+                end
+                push!(solution, (ID, n, B))
+        end
+        return solution
     end
-    return solution
 end
+
+function filesFromDir(dirname::String)
+    if ! isdir(dirname)
+        return [dirname]
+    end
+    filenames = readdir(dirname, join=true)
+    return filenames
+end
+
+
+
+function readFileSat(name::String, range=1:1)
+    filenames = filesFromDir(name)
+    
+    instances = []
+    for filename in filenames[range]
+        open(filename) do f
+            nvar = 0
+            nclauses = 0
+            w = 0
+            clauses = 0
+            clause_id = 1
+            pieces = []
+            start = 1
+            while !eof(f)
+                s = readline(f)
+                if s[1] == 'c' continue end
+                pieces = split(s, ' ')
+                if s[1] == 'p'
+                    nvar = parse(Int64, pieces[3])
+                    nclauses = parse(Int64, pieces[4]) - 1
+                    clauses = zeros(Int64, (nclauses, CLAUSE_LEN))
+                    continue
+                end
+                if s[1] == 'w'
+                    w = parse.([Int64], pieces[2:end])
+                    continue
+                end
+                if pieces[1] == "" start = 2 else start = 1 end
+                
+                clauses[clause_id, :] = parse.([Int64], pieces[start:end-1])
+                clause_id += 1
+            end
+            instance = (clauses, w, nvar, nclauses)
+            push!(instances, instance)
+        end
+    end
+    return instances
+end
+
+function readSolutionSat(name::String)
+    solutions = Dict()
+    open(name) do f
+        idx = -1
+        s = readline(f)
+        while !eof(f)
+            s = readline(f)
+            pieces = split(s, ';')
+            name = pieces[1]
+            optimal_value = parse(Int64, pieces[2])
+            solutions[name] = optimal_value
+        end
+    end
+    return solutions
 end
