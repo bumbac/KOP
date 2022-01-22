@@ -90,10 +90,10 @@ end
 
 
 
-function readFileSat(name::String, range=1:1)
+function readFileSat(name::String, range="ALL")
     filenames = filesFromDir(name)
-    
     instances = []
+    if range == "ALL" range = 1:length(filenames) end
     for filename in filenames[range]
         open(filename) do f
             nvar = 0
@@ -102,11 +102,11 @@ function readFileSat(name::String, range=1:1)
             clauses = 0
             clause_id = 1
             pieces = []
-            start = 1
             while !eof(f)
                 s = readline(f)
                 if s[1] == 'c' continue end
                 pieces = split(s, ' ')
+                filter!(s->!all(isspace, s), pieces)
                 if s[1] == 'p'
                     nvar = parse(Int64, pieces[3])
                     nclauses = parse(Int64, pieces[4]) - 1
@@ -114,12 +114,10 @@ function readFileSat(name::String, range=1:1)
                     continue
                 end
                 if s[1] == 'w'
-                    w = parse.([Int64], pieces[2:end])
+                    w = parse.([Int64], pieces[2:end - 1])
                     continue
                 end
-                if pieces[1] == "" start = 2 else start = 1 end
-                
-                clauses[clause_id, :] = parse.([Int64], pieces[start:end-1])
+                clauses[clause_id, :] = parse.([Int64], pieces[1:end-1])
                 clause_id += 1
             end
             instance = (clauses, w, nvar, nclauses)
