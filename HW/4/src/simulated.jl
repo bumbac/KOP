@@ -10,54 +10,71 @@ include("../../2/src/file_loader.jl")
 
 function valid(state)
     # checks if items in state do not exceed weight
-    bag, M, decision = state
+    bag, M, decision, yes, no = state
     weight = 0
-    for i in 1:size(bag)[1]
-        weight += decision[i]*bag[i, IDX_WEIGHT]
-        if weight > M return false end
+    for i in yes
+        weight += bag[i, IDX_WEIGHT]
     end
-    return true
+    return weight <= M
 end
+
+function add(state, idx=0, answer=1)
+    # add or remove item from bag at idx
+    bag, M, decision, yes, no = state
+    if idx == 0
+        if answer == 1
+            if length(no) == 0 return state end
+            idx = rand(no)
+        else
+            if length(yes) == 0 return state end
+            idx = rand(yes)
+        end
+    end
+    if answer == 1
+        push!(yes, idx)
+        deleteat!(no, findall(x->x==idx, no))
+    else
+        push!(no, idx)
+        deleteat!(yes, findall(x->x==idx, yes))
+    end
+    decision[idx] = answer
+    return (bag, M, decision, yes, no)
+end
+
 
 function generate_solution(instance)
     # create random initial solution
+    # if no solution is found, return empty knapsack
     bag, M = instance
     n = size(bag)[1]
-    state = 0
-    cnt = 1000
-    while true
-        cnt -= 1
-        if cnt == 0
-            println("CANT FIND INITIAL STATE")
-            state = (bag, M, zeros(Int8, n))
-            break
-        end
+    limit = n*10
+    empty_state = (bag, M, zeros(Bool, n), [], [idx for idx in 1:n])
+    while limit > 0
         n_candidates = rand(1:n)
-        decision = zeros(Int8, n)
+        state = empty_state
         for i in 1:n_candidates
-            decision[i] = rand(0:1)
-            # prevents loading too heavy item
-            if bag[i, IDX_WEIGHT] > M decision[i] = 0 end
+            state = add(state)
         end
-        state = (bag, M, decision)
-        if valid(state) break end
+        if valid(state) return state end
+        limit -= 1
     end
-    return state
+    return empty_state
 end
 
 function repair(state)
     # unload random items from knapsack when overloaded
-    bag, M, decision = state
+    bag, M, decision, yes, no = state
     n = size(bag)[1]
     weight = 0
-    for i in 1:n weight += bag[i, IDX_WEIGHT]*decision[i] end
+    for i in yes weight += bag[i, IDX_WEIGHT] end
     while weight > M
-        delete_idx = rand(1:n)
-        decision[delete_idx] = 0
+        delete_idx = rand(yes)
+        state = add(state, delete_idx, 0)
+        bag, M, decision, yes, no = state
         weight = 0
-        for i in 1:n weight += bag[i, IDX_WEIGHT]*decision[i] end
+        for i in yes weight += bag[i, IDX_WEIGHT] end
     end 
-    return (bag, M, decision)
+    return state
 end
 
 function improvement(current, previous)
@@ -68,17 +85,15 @@ end
 
 function cost(state)
     # optimization criterion is the price of knapsack
-    bag, M, decision = state
-    n = size(bag)[1]
+    bag, M, decision, yes, no = state
     profit = 0
     weight = 0
-    for i in 1:n
-        profit += bag[i, IDX_PRICE]*decision[i]
-        weight += bag[i, IDX_WEIGHT]*decision[i]
+    for i in yes
+        profit += bag[i, IDX_PRICE]
+        weight += bag[i, IDX_WEIGHT]
     end
     if weight > M
-#         curbed_state = repair(state)
-        return 0  #cost(curbed_state)
+        return 0
     end
     return profit
 end
@@ -88,13 +103,13 @@ function cool(T, cooling_factor)
 end
 
 function change(current, previous)
-    bag, M, decision = current
-    pbag, pM, pdecision = previous
+    bag, M, decision, yes, no = current
+    pbag, pM, pdecision, yes, no = previous
     return sum(decision .⊻ pdecision) > 0
 end
 
-function sa_try(T, state)
-    bag, M, decision = state
+function sa_try2(T, state)
+    bag, M, decision, yes, no = state
     n = size(bag)[1]
     new_decision = copy(decision)
     cnt = 0
@@ -104,6 +119,8 @@ function sa_try(T, state)
         # add one item
         if new_decision[change_idx] == 0
             new_decision[change_idx] = 1
+            push!(yes, change_idx)
+            deleteat!(no, findall(x->x==change_idx, no))
             break
         end
         cnt += 1
@@ -113,15 +130,19 @@ function sa_try(T, state)
     return new_state
 end
 
+function sa_try(T, state)
+    new_state = add(state)
+    if !valid(new_state) new_state = repair(new_state) end
+    return new_state
+end
+
 function sa(instance, T, frozen_limit, inner_cycle=50, cooling_factor=0.99)
     state = generate_solution(instance)
     best = state    
-    best_all = state
     steps = 0
-    # graph making, current solution
     y = []
-    # graph making, best solution so far
     y_best = []
+
     accepted_limit = inner_cycle // 2
     all_limit = 100000
     while T > frozen_limit && steps < all_limit
@@ -147,7 +168,7 @@ function sa(instance, T, frozen_limit, inner_cycle=50, cooling_factor=0.99)
             end
             accepted -= 1
         end
-        T =  cool(T, cooling_factor)
+        T = cool(T, cooling_factor)
     end
     return cost(best), best, y, y_best
 end
