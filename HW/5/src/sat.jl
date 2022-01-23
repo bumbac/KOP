@@ -17,7 +17,7 @@ struct problemSAT
     w_sample::StatsBase.Weights
 end
 
-function valid(state)
+function valid(state::Tuple{problemSAT, Array{Bool}})
     problem, decision = state
     for clause in eachrow(problem.clauses)
         clause_satisfied = false
@@ -33,10 +33,10 @@ function valid(state)
     return true
 end
 
-function generateSAT(instance, random)
+function generateSAT(instance, random::Bool)
     # create random initial state
     # can be invalid
-    clauses, w, nvar, nclauses = instance
+    clauses, w, nvar, nclauses, filename = instance
     problem = problemSAT(clauses, w, nvar, nclauses, Weights(w))
     decision = 0
     if random
@@ -48,7 +48,7 @@ function generateSAT(instance, random)
     return state
 end
 
-function improvement(current, previous)
+function improvement(current::Tuple{problemSAT, Array{Bool}}, previous::Tuple{problemSAT, Array{Bool}})
     # returns difference in cost between current and previous state
     # can be negative
     c = cost(current)
@@ -62,7 +62,7 @@ function improvement(current, previous)
     end
 end
 
-function cost(state, sat_value = false)
+function cost(state::Tuple{problemSAT, Array{Bool}}, sat_value::Bool = false)
     problem, decision = state   
     n_sat_clauses = 0
     for clause in eachrow(problem.clauses)
@@ -88,11 +88,11 @@ function cost(state, sat_value = false)
     end
 end
 
-function cool(T, cooling_factor)
+function cool(T::Float64, cooling_factor::Float64)
     return cooling_factor*T
 end
 
-function sa_try(T, state)
+function sa_try(T::Float64, state::Tuple{problemSAT, Array{Bool}})
     problem, decision = state
     new_decision = copy(decision)
 
@@ -108,9 +108,26 @@ function sa_try(T, state)
     return state
 end
 
-function sa(instance, T, frozen_limit, inner_cycle=50, random=true, cooling_factor=0.99)
+function initial_temperature(state::Tuple{problemSAT, Array{Bool}})
+    problem, decision = state
+    neighbor_cost = zeros(problem.nvar)
+    for i in 1:problem.nvar
+        new_decision = copy(decision)
+        new_decision[i] = ! new_decision[i]
+        neighbor_cost[i] = cost((problem, new_decision))
+    end
+    difference = abs(maximum(neighbor_cost) - minimum(neighbor_cost))
+    return difference
+end
+
+function sa(instance, T::Float64=0, frozen_limit::Float64=0.001, inner_cycle::Int64=50, random::Bool=true, cooling_factor::Float64=0.999)
     problem, decision = generateSAT(instance, random)
     state = (problem, decision)
+    if 0 < frozen_limit < T
+    else
+        println("Automatic calculation of initial temperature...")
+        T = initial_temperature(state)
+    end
     best = state    
     best_all = state
     steps = 0

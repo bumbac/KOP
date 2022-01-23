@@ -120,11 +120,18 @@ function readFileSat(name::String, range="ALL")
                 clauses[clause_id, :] = parse.([Int64], pieces[1:end-1])
                 clause_id += 1
             end
-            instance = (clauses, w, nvar, nclauses)
+            stripped_filename = stripFilename(filename)
+            instance = (clauses, w, nvar, nclauses, stripped_filename)
             push!(instances, instance)
         end
     end
     return instances
+end
+
+function stripFilename(filename::String)
+   slash_id = findlast('/', filename) + 2
+   dash_id = findlast('-', filename) - 1
+   return SubString(filename, slash_id, dash_id)
 end
 
 function readSolutionSat(name::String)
