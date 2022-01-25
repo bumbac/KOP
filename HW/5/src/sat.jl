@@ -128,13 +128,12 @@ function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{
         T = initial_temperature(state)
     end
     if inner_cycle == 0
-        inner_cycle = problem.nvar * 0.75
+        inner_cycle = problem.nvar * inner_cycle_alpha
     end
     best = state    
     steps = 0
     # graph making, current solution
     y = []
-    # graph making, best solution so far
     rejected = 0
     n_resets = 0
     while T > frozen_limit
