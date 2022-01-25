@@ -9,6 +9,10 @@ IDX_PRICE = 2
 IDX_ID = 3
 CLAUSE_LEN = 3
 
+macro Name(arg)
+    string(arg)
+end
+
 
 function readFile(name::String, problem="knapsack")
     if problem == "sat" return readFileSat(name) end
@@ -129,19 +133,23 @@ function readFileSat(name::String, range="ALL")
 end
 
 function stripFilename(filename::String)
-   slash_id = findlast('/', filename) + 2
-   dash_id = findlast('-', filename) - 1
-   return SubString(filename, slash_id, dash_id)
+    slash_id = findlast('/', filename) + 2
+    dash_id = 0
+    if findlast('A', filename) != nothing
+        dash_id = findlast('A', filename) - 2
+    else
+        dash_id = findlast('.', filename) - 1
+    end
+    return SubString(filename, slash_id, dash_id)
 end
 
 function readSolutionSat(name::String)
     solutions = Dict()
     open(name) do f
         idx = -1
-        s = readline(f)
         while !eof(f)
             s = readline(f)
-            pieces = split(s, ';')
+            pieces = split(s, ' ')
             name = pieces[1]
             optimal_value = parse(Int64, pieces[2])
             solutions[name] = optimal_value

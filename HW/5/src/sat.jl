@@ -117,35 +117,46 @@ function initial_temperature(state::Tuple{problemSAT, Array{Bool}})
         neighbor_cost[i] = cost((problem, new_decision))
     end
     difference = abs(maximum(neighbor_cost) - minimum(neighbor_cost))
-    return difference
+    return (1 - difference)*100
 end
 
-function sa(instance, T::Float64=0, frozen_limit::Float64=0.001, inner_cycle::Int64=50, random::Bool=true, cooling_factor::Float64=0.999)
+function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{String}}; T::Float64=0.0, frozen_limit::Float64=0.01, inner_cycle::Int64=0, random::Bool=true, cooling_factor::Float64=0.99, restart::Bool=false, inner_cycle_alpha::Float64=0.75)
     problem, decision = generateSAT(instance, random)
     state = (problem, decision)
     if 0 < frozen_limit < T
     else
-        println("Automatic calculation of initial temperature...")
         T = initial_temperature(state)
     end
+    if inner_cycle == 0
+        inner_cycle = problem.nvar * 0.75
+    end
     best = state    
-    best_all = state
     steps = 0
     # graph making, current solution
     y = []
     # graph making, best solution so far
-    y_best = []
-    all_limit = 10000
-    while T > frozen_limit# && steps < all_limit
-        accepted = 0
+    rejected = 0
+    n_resets = 0
+    while T > frozen_limit
         for i in 1:inner_cycle
             steps += 1
-            push!(y_best, cost(best))
             state = sa_try(T, state)
-            if improvement(state, best) > 0 best = state end
+            push!(y, cost(state))
+            if improvement(state, best) > 0
+                best = state
+                rejected = 0
+            else
+                rejected += 1
+            end
         end
-        push!(y, cost(state))
         T =  cool(T, cooling_factor)
+        if rand() < 0.001 && !valid(state) && restart
+            state = generateSAT(instance, random)
+            T = initial_temperature(state)
+            println("RESTART init t ", T) 
+            push!(y, -0.5)
+            n_resets += 1
+        end
     end
-    return cost(best), cost(best, true), y, y_best, steps
+    return cost(best), cost(best, true), y, steps, n_resets
 end
