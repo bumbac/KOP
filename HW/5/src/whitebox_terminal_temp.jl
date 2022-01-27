@@ -4,16 +4,16 @@ using BenchmarkTools
 
 include("../src/sat.jl")
 include("../../2/src/file_loader.jl")
-A = "/home/sutymate/School/KOP/HW/5/data/wuf-A1/wuf20-88-A1"
-A_sol = "/home/sutymate/School/KOP/HW/5/data/wuf-A1/wuf20-88-A-opt.dat"
-Q = "/home/sutymate/School/KOP/HW/5/data/wuf-Q1/wuf20-78-Q1"
-Q_sol = "/home/sutymate/School/KOP/HW/5/data/wuf-Q1/wuf20-78-Q-opt.dat"
-M = "/home/sutymate/School/KOP/HW/5/data/wuf-M1/wuf20-78-M1"
-M_sol = "/home/sutymate/School/KOP/HW/5/data/wuf-M1/wuf20-78-M-opt.dat"
-N = "/home/sutymate/School/KOP/HW/5/data/wuf-N1/wuf20-78-N1"
-N_sol = "/home/sutymate/School/KOP/HW/5/data/wuf-N1/wuf20-78-N-opt.dat"
-R = "/home/sutymate/School/KOP/HW/5/data/wuf-R1/wuf20-78-R1"
-R_sol = "/home/sutymate/School/KOP/HW/5/data/wuf-R1/wuf20-78-R-opt.dat"
+A = "../data/wuf-A1/wuf20-88-A1"
+A_sol = "../data/wuf-A1/wuf20-88-A-opt.dat"
+Q = "../data/wuf-Q1/wuf20-78-Q1"
+Q_sol = "../data/wuf-Q1/wuf20-78-Q-opt.dat"
+M = "../data/wuf-M1/wuf20-78-M1"
+M_sol = "../data/wuf-M1/wuf20-78-M-opt.dat"
+N = "../data/wuf-N1/wuf20-78-N1"
+N_sol = "../data/wuf-N1/wuf20-78-N-opt.dat"
+R = "../data/wuf-R1/wuf20-78-R1"
+R_sol = "../data/wuf-R1/wuf20-78-R-opt.dat"
 
 names = [(A, A_sol, "A"), (Q, Q_sol, "Q"), (M, M_sol, "M"), (N, N_sol, "N"), (R, R_sol, "R")]
 d=Dict()
@@ -31,7 +31,7 @@ for frozen_limit in f
         solutions = readSolutionSat(problem[2])
         err = []
         steps_arr = [0]
-        for instance in instances[1:10]
+        for instance in instances[1:100]
             sol = solutions[instance[5]]
             profit, absolute, y, steps, n_r = sa(instance, frozen_limit=frozen_limit)
             push!(err, 1 - absolute/sol)    
