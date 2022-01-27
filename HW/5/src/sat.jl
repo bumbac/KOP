@@ -158,7 +158,7 @@ function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{
         T = initial_temperature(state)
     end
     if inner_cycle == 0
-        inner_cycle = ceil(Int64, sqrt(problem.nvar) * sqrt(problem.nclauses))
+        inner_cycle = ceil(Int64, sqrt(problem.nvar) * sqrt(problem.nclauses)*inner_cycle_alpha)
     end
     best = state    
     steps = 0
@@ -170,20 +170,16 @@ function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{
         for i in 1:inner_cycle
             steps += 1
             state = sa_try2(T, state)
-            push!(y, cost(state))
+            #push!(y, cost(state))
             if improvement(state, best) > 0
                 best = state
-                rejected = 0
-            else
-                rejected += 1
             end
         end
         T =  cool(T, cooling_factor)
         if rand() < 0.001 && !valid(state) && restart
             state = generateSAT(instance, random)
             T = initial_temperature(state)
-           println("RESTART init t ", T) 
-           push!(y, -0.5)
+#            push!(y, -0.5)
             n_resets += 1
         end
     end

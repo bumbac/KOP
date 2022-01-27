@@ -22,7 +22,7 @@ for problem in names
    d[problem[3]] = [] 
    s[problem[3]] = [] 
 end
-f = [0.995, 0.99, 0.95, 0.9, 0.85, 0.8]
+f = [0.99, 0.95, 0.9, 0.85, 0.8, 0.5]
 attempts = 3
 for c in f
     cnt = 1
@@ -33,7 +33,7 @@ for c in f
         solutions = readSolutionSat(problem[2])
         err = []
         steps_arr = []
-        for instance in instances[1:1]
+        for instance in instances[1:100]
             sol = solutions[instance[5]]
             absolute = 0
             steps = 0
