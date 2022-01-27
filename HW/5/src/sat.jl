@@ -170,7 +170,7 @@ function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{
         for i in 1:inner_cycle
             steps += 1
             state = sa_try2(T, state)
-            #push!(y, cost(state))
+            push!(y, cost(state))
             if improvement(state, best) > 0
                 best = state
             end
@@ -186,21 +186,14 @@ function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{
     return cost(best), cost(best, true), y, steps, n_resets
 end
 
-# just for interest
 function sa_try2(T::Float64, state::Tuple{problemSAT, Array{Bool}}, choice::String="rand")
+    # exploration strategy
+    # tries to satisfy clauses
     problem, decision = state
     new_decision = copy(decision)
-#    k = trunc(Int, problem.nvar / 3)
-#    flip_ids = []
-#    if choice == "w" flip_ids = [sample(1:problem.nvar, problem.w_sample)] end
-#    if choice == "rand" 
-#    flip_ids = [rand(1:problem.nvar)]
-#    end    
-#    if choice == "k rand" flip_ids = rand(1:problem.nvar, k) end    
-#    if choice == "k w" flip_ids = sample(1:problem.nvar, problem.w_sample, k) end
-#    for i in flip_ids new_decision[i] = ! new_decision[i] end
     flip_id = 0
     if !valid(state)
+        # some clause is not satisfied
         var_flip = zeros(Bool, problem.nvar)
         clause_sat = zeros(Bool, problem.nclauses)
         clause_id = 1
@@ -208,20 +201,24 @@ function sa_try2(T::Float64, state::Tuple{problemSAT, Array{Bool}}, choice::Stri
             for variable in clause
                 variable_value = decision[abs(variable)]
                 if (0 == variable_value > variable) || (1 == variable_value <= variable)
+                    # this clause is satisfied
                     clause_sat[clause_id] = true
                     break
                 end
             end
             if clause_sat[clause_id] == false
+                # set the variable as available for flipping
                 for variable in clause var_flip[abs(variable)] = true end
             end
             clause_id += 1
         end
+        # find available variables (that are in nonsatisfied clauses)
         nonsat_vars = findall(var_flip .== true)
-        flip_id = rand(nonsat_vars)   
+        flip_id = rand(nonsat_vars)
     else
         flip_id = rand(1:problem.nvar)
     end
+    # flip one
     new_decision[flip_id] = ! new_decision[flip_id]
     new_state = (problem, new_decision)
 
