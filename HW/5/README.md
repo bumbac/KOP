@@ -8,20 +8,21 @@ Spustite ho v príkazovom riadku v prostredí Julia.
 > julia runCL.jl -v -g <instance_path>
 
 Výstup programu bez argumentov je v tvare:
-> instance_name
+> instancename
 
 > price iterations
 
-> instance_name
+> instancename
 
 > price iterations
 ...
 
-Kde _price_ je suma váh splnených premenných a _iterations_ je počet navštívených stavov.
+Kde _instancename_ je názov instancie, _price_ je suma váh splnených premenných a _iterations_ je počet navštívených stavov.
 
 Argumenty:
 > -v    : not default, verbose, prints text output
--g:     not default, shows graph of iteration
+
+> -g    : default, shows graph of iteration
 
 Spúšťací skript _runCL.jl_ môžete upraviť, napríklad manuálne nastaviť hodnoty počiatočnej teploty, faktoru ochladzovania, reštarty atd.
 
