@@ -147,7 +147,8 @@ function initial_temperature(state::Tuple{problemSAT, Array{Bool}})
     # calculate biggest difference between neighbouring states
     difference = abs(maximum(neighbor_cost) - minimum(neighbor_cost))
     # when difference between states is big, temperature can be lower
-    return (1 - difference)
+    # difference can range from <0, 2>
+    return (2.0 - difference)
 end
 
 function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{String}}; T::Float64=0.0, frozen_limit::Float64=0.01, inner_cycle::Int64=0, random::Bool=true, cooling_factor::Float64=0.99, restart::Bool=false, inner_cycle_alpha::Float64=0.9, choice::String="rand")
