@@ -10,6 +10,7 @@ Spustite ho v príkazovom riadku v prostredí Julia.
 Výstup programu bez argumentov je v tvare:
 > instance_name
 > price iterations
+
 > instance_name
 > price iterations
 ...
