@@ -22,9 +22,9 @@ Kde _instancename_ je názov instancie, _price_ je suma váh splnených premenn�
 Argumenty:
 > -v    : not default, verbose, prints text output
 
-> -g    : default, shows graph of iteration
+> -g    : not default, shows graph of iteration
 
 Spúšťací skript _runCL.jl_ môžete upraviť, napríklad manuálne nastaviť hodnoty počiatočnej teploty, faktoru ochladzovania, reštarty atd.
 
-
+Ak spustíte _runCL.jl_ bez argumentov a vstupného súboru, spustí sa ukážkový beh jednej instancie s grafom.
 

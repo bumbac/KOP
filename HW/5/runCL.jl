@@ -1,8 +1,11 @@
 include("src/sat.jl")
 include("src/file_loader.jl")
+# comment this part if PlotlyJS is  already installed
+##############
 using Pkg
 Pkg.add("PlotlyJS")
 using PlotlyJS
+##############
 
 graphs = false
 verbose = false
@@ -18,7 +21,11 @@ if "-g" in ARGS
         println("Graphs enabled.")
     end
 end
-
+if isempty(ARGS)
+    push!(ARGS, "data/wuf-M1/wuf20-78-M1/wuf20-01.mwcnf")
+    graphs=true
+    verbose=true
+end
 for a in ARGS
     if a == "-g" || a == "-v" continue end
     cost_in_time = 0
@@ -45,3 +52,5 @@ for a in ARGS
         if graphs display(plot(scatter(y=cost_in_time, name=instance[5]))) end
     end
 end
+println("\nPress enter to exit.")
+a = readline()
