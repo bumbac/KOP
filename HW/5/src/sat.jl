@@ -165,7 +165,6 @@ function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{
     steps = 0
     # graph making, current solution
     y = []
-    rejected = 0
     n_resets = 0
     while T > frozen_limit
         for i in 1:inner_cycle
@@ -184,7 +183,7 @@ function sa(instance::Tuple{Array{Int64}, Array{Int64}, Int64, Int64, SubString{
             n_resets += 1
         end
     end
-    return cost(best), cost(best, true), y, steps, n_resets
+    return cost(best), cost(best, true), y, steps, n_resets, best
 end
 
 function sa_try2(T::Float64, state::Tuple{problemSAT, Array{Bool}}, choice::String="rand")

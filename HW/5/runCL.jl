@@ -26,13 +26,28 @@ if isempty(ARGS)
     graphs=true
     verbose=true
 end
+
+function showSolution(state)
+    problem, decision = state
+    output = string(cost(state, true))
+    for var in 1:problem.nvar
+        output *= " "
+        if decision[var] == false
+            output *= "-"*string(var)
+        else
+            output *= string(var)
+        end
+
+    end
+    output *= " 0"
+    return output        
+end
+
 for a in ARGS
     if a == "-g" || a == "-v" continue end
     cost_in_time = 0
     instances = readFileSat(a)
     for instance in instances
-        # print name of instance
-        println(instance[5])
         #########
         # example of predefined settings
         #EDIT THIS PART IF YOU WANT#
@@ -41,13 +56,15 @@ for a in ARGS
 #        sa(instance, T=1.0, frozen_limit=0.01, inner_cycle=0, random=true, cooling_factor=0.99, restart=false, inner_cycle_alpha=0.9, choice="rand")                     
         #########
         #########
-        relative_cost, absolute_cost, cost_in_time, steps, num_of_restarts = sa(instance)
+        relative_cost, absolute_cost, cost_in_time, steps, num_of_restarts, solution = sa(instance)
         if verbose
             println("Relative price of found solution: ", relative_cost)
             println("Absolute price of found solution: ", absolute_cost)
             println("Number of iterations: ", steps)
+            println("Solution:\n", "w", instance[5], " ", showSolution(solution))
         else
-            println(absolute_cost, " ", steps)
+            println("w", instance[5], " ", showSolution(solution))
+#            println(absolute_cost, " ", steps, " " solution[2])
         end
         if graphs display(plot(scatter(y=cost_in_time, name=instance[5]))) end
     end
